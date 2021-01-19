@@ -1,0 +1,20 @@
+parameters:
+
+
+application:
+	mapping:
+		*: [App, Modules\*, Endpoints\*Endpoint]
+
+
+session:
+	expiration: 14 days
+
+
+di:
+	export:
+		parameters: no
+		tags: no
+
+
+services:
+	router: App\Router\RouterFactory::createRouter
