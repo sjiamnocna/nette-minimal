@@ -3,13 +3,13 @@
 namespace App\Endpoints;
 
 use Nette\Application\IPresenter;
-use Nette\Application\IResponse;
+use Nette\Application\Response;
 use Nette\Application\Responses\TextResponse;
 use Nette\Application\Request;
 
 class MyEndpoint implements IPresenter
 {
-    public function run(Request $request): IResponse
+    public function run(Request $request): Response
     {
         return new TextResponse(var_export($request, true));
     }
