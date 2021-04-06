@@ -1,12 +1,11 @@
 <?php declare(strict_types=1);
 
-define('PROTO', 'https://');
-define('SITE_ROOT_URI', 'example.cz');
+define('SITE_ROOT_DIR', __DIR__);
+define('ALLOWED_REFERRER', 'localhost');
 
 // do basic checks before doing anything
 
-if((empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest')
-	|| (empty($_SERVER['HTTP_REFERER']) || $_SERVER['HTTP_REFERER'] == PROTO . SITE_ROOT_URI)) { 
+if((empty($_REQUEST['key'])) || (empty($_SERVER['HTTP_REFERER']) || stripos($_SERVER['HTTP_REFERER'], ALLOWED_REFERRER) === -1)) { 
 	// this is not AJAX call or it came from different site than allowed
 	header('HTTP/1.0 403 Forbidden');
 	die('403 - Forbidden');
