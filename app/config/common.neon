@@ -1,5 +1,9 @@
 parameters:
 
+database:
+	dsn: "mysql:host=%database.host%;dbname=%database.name%"
+	user: %database.user%
+	password: %database.pass%
 
 application:
 	mapping:
@@ -18,3 +22,4 @@ di:
 
 services:
 	router: App\Router\RouterFactory::createRouter
+	
