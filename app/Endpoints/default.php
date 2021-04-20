@@ -7,7 +7,7 @@ use Nette\Application\Response;
 use Nette\Application\Responses\TextResponse;
 use Nette\Application\Request;
 
-class MyEndpoint implements IPresenter
+class DefaultEndpoint implements IPresenter
 {
     public function run(Request $request): Response
     {
