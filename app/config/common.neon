@@ -1,25 +1,17 @@
-parameters:
-
-database:
-	dsn: "mysql:host=%database.host%;dbname=%database.name%"
-	user: %database.user%
-	password: %database.pass%
+includes:
+	- local.neon
 
 application:
 	mapping:
-		*: [App, Modules\*, Endpoints\*Endpoint]
-
+		*: [App, Modules\*, Endpoints\*]
 
 session:
 	expiration: 14 days
-
 
 di:
 	export:
 		parameters: no
 		tags: no
 
-
 services:
 	router: App\Router\RouterFactory::createRouter
-	

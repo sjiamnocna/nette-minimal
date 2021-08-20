@@ -13,7 +13,7 @@ final class RouterFactory
 	public static function createRouter(): RouteList
 	{
 		$router = new RouteList;
-		$router->addRoute('/<action>[/<id>]', 'My:default');
+		$router->addRoute('/api/<res>[/<id>]', 'ActionDispatcher:run');
 		return $router;
 	}
 }
