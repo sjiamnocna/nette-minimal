@@ -1,16 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace App;
-
-use Nette\Configurator;
-
+namespace APIcation;
 
 class Bootstrap
 {
 	public static function boot(): Configurator
 	{
 		$configurator = new Configurator;
-		$appdir = dirname(__DIR__);
 
 		$configurator->setDebugMode(TRUE);
 		$configurator->enableTracy(__DIR__ . '/../log');

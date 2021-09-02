@@ -14,4 +14,5 @@ di:
 		tags: no
 
 services:
-	router: App\Router\RouterFactory::createRouter
+	Application: APIcation\Application
+	MyAuthenticator: APIcation\MyAuthenticator
