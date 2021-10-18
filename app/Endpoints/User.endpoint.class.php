@@ -7,6 +7,7 @@ use APIcation\MyAuthenticator;
 use Nette\Application\Responses\JsonResponse;
 use Nette\InvalidArgumentException;
 use Nette\Security\User;
+use Throwable;
 use Tracy\Debugger;
 
 class EUser extends Endpoint
@@ -30,14 +31,32 @@ class EUser extends Endpoint
      */
     protected function login(): JsonResponse
     {
+        $res = [];
+        // destructure $username and $passwd
         ['username' => $username, 'password' => $password] = $this->Request->getPost();
 
-        $this->User->login($username, $password);
+        try{
+            $this->User->login($username, $password);
+            $success = $this->User->isLoggedIn();
+            $identity = $this->User->getIdentity() ?? false;
 
-        return new JsonResponse([
-            'success' => $this->User->isLoggedIn(),
-            'identity' => (array) $this->User->getIdentity()
-        ]);
+            if(!$identity){
+                throw new Exception('Invalid user credentials', 1);
+            }
+
+            $res = [
+                'code' => 0,
+                'identity' => $success ? (array) $this->User->getIdentity() : null,
+            ];
+        } catch(Throwable $e){
+            $success = false;
+            $res = [
+                'code' => $e->getCode(),
+                'message' => $e->getMessage(),
+            ];
+        }
+
+        return new JsonResponse($res);
     }
 
     /**

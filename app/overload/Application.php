@@ -78,6 +78,7 @@ class Application
 	{
 		try {
 			Arrays::invoke($this->onStartup, $this);
+			$this->initPlugins();
 			$this->processRequest($this->createInitialRequest());
 			Arrays::invoke($this->onShutdown, $this);
 
@@ -105,30 +106,6 @@ class Application
             $this->HttpResponse->addHeader('Access-Control-Max-Age', "1728000");
         }
     }
-
-	public function createInitialRequest(): Request
-	{
-		$postData = $this->HttpRequest->getPost();
-		$headers = $this->HttpRequest->getHeaders();
-
-        // correctly get data from Fetch XHR method
-        if (($headers['x-requested-with'] ?? false) === 'XMLHttpRequest' && empty($this->HttpRequest->getPost()) && $headers['content-type'] === 'application/json'){
-            /**
-             * @var string  String data from STDIN (Fetch error)
-             */
-            $fetchSource = file_get_contents('php://input');
-            $postData = @json_decode($fetchSource, true);
-        }
-
-		// finally create and return request
-		return new Request(
-			$_SERVER['REQUEST_URI'],
-			$this->HttpRequest->getMethod(),
-			((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443),
-			$postData ?? [],
-			$this->HttpRequest->getFiles() ?? []
-		);
-	}
 
 	public function processRequest(Request $Request): void
 	{
@@ -163,7 +140,6 @@ class Application
 	
 			// run wanted class method and return it's content
 			$Response = call_user_func([$Endpoint, 'run'], $Request);
-			
 		} catch (Throwable $e) {
 			throw count($this->requests) > 1
 				? $e
@@ -177,6 +153,33 @@ class Application
 
 		Arrays::invoke($this->onResponse, $this, $Response);
 		$Response->send($this->HttpRequest, $this->HttpResponse);
+	}
+
+	public function initPlugins(){
+	}
+
+	public function createInitialRequest(): Request
+	{
+		$postData = $this->HttpRequest->getPost();
+		$headers = $this->HttpRequest->getHeaders();
+
+        // correctly get data from Fetch XHR method
+        if (($headers['x-requested-with'] ?? false) === 'XMLHttpRequest' && empty($this->HttpRequest->getPost()) && $headers['content-type'] === 'application/json'){
+            /**
+             * @var string  String data from STDIN (Fetch error)
+             */
+            $fetchSource = file_get_contents('php://input');
+            $postData = @json_decode($fetchSource, true);
+        }
+
+		// finally create and return request
+		return new Request(
+			$_SERVER['REQUEST_URI'],
+			$this->HttpRequest->getMethod(),
+			((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443),
+			$postData ?? [],
+			$this->HttpRequest->getFiles() ?? []
+		);
 	}
 
 	/**

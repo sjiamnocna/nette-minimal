@@ -44,7 +44,6 @@ abstract class Endpoint
             return call_user_func([$this, $prefixedAction]);
         }
 
-        Debugger::barDump($this->Request->getMethod());
         return call_user_func([$this, $this->Request->getAction()]);
     }
 }
