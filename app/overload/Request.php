@@ -5,6 +5,7 @@ namespace APIcation;
 use Exception;
 use InvalidArgumentException;
 use Nette;
+use Nette\InvalidStateException;
 use Tracy\Debugger;
 
 /**
@@ -20,21 +21,20 @@ final class Request
 {
 	use Nette\SmartObject;
 
-	/**
-	 * @var string Query string
-	 */
+	/** @var string URI query string */
 	private string $queryString;
 
 	/** @var string[] Endpoint name, method, param */
 	private array $path = [];
 
-	/**
-	 * @var string HTTP method
-	 */
+	/** @var string HTTP method */
 	private string $method;
 
-	/** @var bool Using HTPS? */
+	/** @var bool Using HTPS */
 	private bool $https;
+
+	/** @var bool Using Private key? */
+	private bool $private;
 
 	/** @var array */
 	private array $post;
@@ -49,6 +49,7 @@ final class Request
 		string $queryString,
 		string $method,
 		bool $https,
+		bool $private,
 		array $post,
 		array $files
 	) {
@@ -56,6 +57,7 @@ final class Request
 		$this->method = $method;
 		$this->processPath($queryString);
 		$this->https = $https;
+		$this->private = $private;
 		$this->post = $post;
 		$this->files = $files;
 	}
@@ -69,12 +71,15 @@ final class Request
 		 */
 		$res = explode('/', trim($queryString, '/'));
 
-		if (count($res) < 3){
-			throw new InvalidArgumentException();
+		if (count($res) < 1){
+			throw new InvalidStateException();
 		}
 
+		// skip API
 		for ($i = 0; $item = $res[$i] ?? false; $i++){
 			if ($item === 'api'){
+				// because we use NodeJS proxy pass to API when developing on localhost
+				// we prepended 'api' this removes it
 				continue;
 			}
 			$this->path[] = $item;
@@ -129,20 +134,19 @@ final class Request
 	}
 
 	/**
-	 * Returns the method.
+	 * Returns current method
 	 */
 	public function getMethod(): ?string
 	{
 		return $this->method;
 	}
 
-
 	/**
-	 * Checks if the method is the given one.
+	 * If private key is used
 	 */
-	public function isMethod(string $method): bool
+	public function getPrivate(): bool
 	{
-		return strcasecmp((string) $this->method, $method) === 0;
+		return $this->private;
 	}
 
 

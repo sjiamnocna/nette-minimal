@@ -1,10 +1,6 @@
 includes:
 	- local.neon
 
-application:
-	mapping:
-		*: [App, Modules\*, Endpoints\*]
-
 session:
 	expiration: 14 days
 
@@ -15,4 +11,3 @@ di:
 
 services:
 	Application: APIcation\Application
-	MyAuthenticator: APIcation\MyAuthenticator

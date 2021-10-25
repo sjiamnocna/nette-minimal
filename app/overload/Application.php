@@ -174,9 +174,10 @@ class Application
 
 		// finally create and return request
 		return new Request(
-			$_SERVER['REQUEST_URI'],
-			$this->HttpRequest->getMethod(),
-			((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443),
+			$_SERVER['REQUEST_URI'], // URI query string
+			$this->HttpRequest->getMethod(), // HTTP2 method
+			((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443), // using HTTPS
+			false, // using private key
 			$postData ?? [],
 			$this->HttpRequest->getFiles() ?? []
 		);

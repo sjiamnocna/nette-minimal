@@ -14,7 +14,6 @@ class Configurator extends NetteConfigurator
 {
     /** @var array overload default service list */
 	public $defaultExtensions = [
-		'application' => [Nette\Bridges\ApplicationDI\ApplicationExtension::class, ['%debugMode%', ['%appDir%'], '%tempDir%/cache/nette.application']],
 		'cache' => [Nette\Bridges\CacheDI\CacheExtension::class, ['%tempDir%']],
 		'constants' => Extensions\ConstantsExtension::class,
 		'database' => [Nette\Bridges\DatabaseDI\DatabaseExtension::class, ['%debugMode%']],
@@ -24,7 +23,6 @@ class Configurator extends NetteConfigurator
 		'http' => [Nette\Bridges\HttpDI\HttpExtension::class, ['%consoleMode%']],
 		'inject' => Nette\DI\Extensions\InjectExtension::class,
 		'php' => Extensions\PhpExtension::class,
-		'routing' => [Nette\Bridges\ApplicationDI\RoutingExtension::class, ['%debugMode%']],
 		'search' => [Nette\DI\Extensions\SearchExtension::class, ['%tempDir%/cache/nette.search']],
 		'security' => [Nette\Bridges\SecurityDI\SecurityExtension::class, ['%debugMode%']],
 		'session' => [Nette\Bridges\HttpDI\SessionExtension::class, ['%debugMode%', '%consoleMode%']],

@@ -5,13 +5,11 @@ namespace APIcation\Endpoints;
 use APIcation\Request;
 use Nette\Application\Response;
 use Exception;
-use Nette\Utils\Reflection;
-use Tracy\Debugger;
 
 /**
  * Base class for all Endpoint
  */
-abstract class Endpoint
+abstract class AbstractEndpoint
 {
     /**
      * Name services with capital letter first to distinguish
@@ -30,9 +28,10 @@ abstract class Endpoint
      */
     public function run(Request $Request): Response
     {
+        // allow access to request in other methods
         $this->Request = $Request;
 
-        if (!method_exists($this, $Request->getAction())){
+        if (!method_exists($this, $this->Request->getAction())){
             throw new Exception('Action doesn\'t exist');
         }
 
