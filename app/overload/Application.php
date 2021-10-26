@@ -20,9 +20,12 @@ use Tracy\Debugger;
 /**
  * API entrypoint controller, complementary to Nette\Aplication
  */
-class Application
+final class Application
 {
 	use Nette\SmartObject;
+
+	/** @var array Parameters from config files */
+	private array $params;
 
 	// use first letter capital for Objects and Services
 	/** @var Nette\Http\Container */
@@ -61,11 +64,13 @@ class Application
 	const maxLoop = 20;
 
 	public function __construct(
+		array $params,
 		Nette\Http\IRequest $HttpRequest,
 		Nette\Http\IResponse $HttpResponse,
 		Container $Container
 	)
 	{
+		$this->params = $params;
 		$this->HttpRequest = $HttpRequest;
 		$this->HttpResponse = $HttpResponse;
 		$this->Container = $Container;
@@ -78,7 +83,6 @@ class Application
 	{
 		try {
 			Arrays::invoke($this->onStartup, $this);
-			$this->initPlugins();
 			$this->processRequest($this->createInitialRequest());
 			Arrays::invoke($this->onShutdown, $this);
 
@@ -107,6 +111,11 @@ class Application
         }
     }
 
+	/**
+	 * Runs whole application based on request
+	 * 
+	 * @param Request
+	 */
 	public function processRequest(Request $Request): void
 	{
 		$this->setAdditionalHeaders();
@@ -139,7 +148,7 @@ class Application
 			$this->Container->callInjects($Endpoint);
 	
 			// run wanted class method and return it's content
-			$Response = call_user_func([$Endpoint, 'run'], $Request);
+			$Response = call_user_func([$Endpoint, 'run'], $this->params, $Request);
 		} catch (Throwable $e) {
 			throw count($this->requests) > 1
 				? $e
@@ -155,9 +164,11 @@ class Application
 		$Response->send($this->HttpRequest, $this->HttpResponse);
 	}
 
-	public function initPlugins(){
-	}
-
+	/**
+	 * Create initial request object
+	 * 
+	 * @return Request
+	 */
 	public function createInitialRequest(): Request
 	{
 		$postData = $this->HttpRequest->getPost();

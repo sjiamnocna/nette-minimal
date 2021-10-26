@@ -10,4 +10,4 @@ di:
 		tags: no
 
 services:
-	Application: APIcation\Application
+	Application: APIcation\Application(%parameters%)

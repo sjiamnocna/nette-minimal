@@ -5,12 +5,16 @@ namespace APIcation\Endpoints;
 use APIcation\Request;
 use Nette\Application\Response;
 use Exception;
+use Nette\SmartObject;
+use Tracy\Debugger;
 
 /**
  * Base class for all Endpoint
  */
 abstract class AbstractEndpoint
 {
+    /** @var array Neon configuration parameters */
+    protected array $params;
     /**
      * Name services with capital letter first to distinguish
      * 
@@ -26,8 +30,10 @@ abstract class AbstractEndpoint
      * 
      * @return Nette\Application\Response
      */
-    public function run(Request $Request): Response
+    public function run(array $params, Request $Request): Response
     {
+        // allows calls to parent context and eg. to get config
+        $this->params = $params;
         // allow access to request in other methods
         $this->Request = $Request;
 
