@@ -151,7 +151,7 @@ final class Application
 			$Endpoint->setParams($this->params);
 	
 			// run wanted class method and return it's content
-			$Response = call_user_func([$Endpoint, 'run'], $Request);
+			$Response = call_user_func([$Endpoint, 'run'], $this->params, $Request);
 		} catch (Throwable $e) {
 			throw count($this->requests) > 1
 				? $e

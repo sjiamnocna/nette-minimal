@@ -35,8 +35,10 @@ abstract class AbstractEndpoint
      * 
      * @return Nette\Application\Response
      */
-    public function run(Request $Request): Response
+    public function run(array $params, Request $Request): Response
     {
+        // allows calls to parent context and eg. to get config
+        $this->params = $params;
         // allow access to request in other methods
         $this->Request = $Request;
 
