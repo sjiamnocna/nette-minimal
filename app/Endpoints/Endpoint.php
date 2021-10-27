@@ -5,18 +5,27 @@ namespace APIcation\Endpoints;
 use APIcation\Request;
 use Nette\Application\Response;
 use Exception;
+use Nette\SmartObject;
+use Tracy\Debugger;
 
 /**
  * Base class for all Endpoint
  */
 abstract class AbstractEndpoint
 {
+    /** @var array Neon configuration parameters */
+    protected array $params;
     /**
      * Name services with capital letter first to distinguish
      * 
      * @var APIcation\Request
      */
     protected Request $Request;
+
+    public function setParams(array $params)
+    {
+        $this->params = $params;
+    }
     
     /**
      * Global run method
