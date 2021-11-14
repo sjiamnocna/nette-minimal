@@ -14,7 +14,9 @@ use Nette\Application\BadRequestException;
 use Nette\DI\Container;
 use Nette\Http\IRequest;
 use Nette\Http\IResponse;
+use Nette\Http\Session;
 use Throwable;
+use Tracy\Debugger;
 
 /**
  * API entrypoint controller, complementary to Nette\Aplication
@@ -66,13 +68,15 @@ final class Application
 		array $params,
 		Nette\Http\IRequest $HttpRequest,
 		Nette\Http\IResponse $HttpResponse,
-		Container $Container
+		Container $Container,
+		Session $Session
 	)
 	{
 		$this->params = $params;
 		$this->HttpRequest = $HttpRequest;
 		$this->HttpResponse = $HttpResponse;
 		$this->Container = $Container;
+		Debugger::barDump($Session);
 	}
 
 	/**
@@ -84,7 +88,6 @@ final class Application
 			Arrays::invoke($this->onStartup, $this);
 			$this->processRequest($this->createInitialRequest());
 			Arrays::invoke($this->onShutdown, $this);
-
 		} catch (\Throwable $e) {
 			Arrays::invoke($this->onError, $this, $e);
 			Arrays::invoke($this->onShutdown, $this, $e);
