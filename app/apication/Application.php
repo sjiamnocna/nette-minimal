@@ -5,12 +5,12 @@ namespace APIcation;
 use APIcation\Endpoints\Endpoint;
 use Nette;
 use Nette\Utils\Arrays;
-use Nette\Application\Response;
 use APIcation\Request;
-use Nette\Application\IPresenter;
+use APIcation\Security\SessionManager;
 use Nette\Application\Responses\ForwardResponse;
 use Nette\Application\ApplicationException;
 use Nette\Application\BadRequestException;
+use Nette\Application\ForbiddenRequestException;
 use Nette\DI\Container;
 use Nette\Http\IRequest;
 use Nette\Http\IResponse;
@@ -21,7 +21,7 @@ use Tracy\Debugger;
 /**
  * API entrypoint controller, complementary to Nette\Aplication
  */
-final class Application
+class Application
 {
 	use Nette\SmartObject;
 
@@ -38,7 +38,10 @@ final class Application
 	/** @var Nette\Http\IResponse */
 	private IResponse $HttpResponse;
 
-	/** @var Endpoint Endpoint object */
+	/** @var SessionManager */
+	private SessionManager $SessionManager;
+
+	/** @var Endpoint Current endpoint in use object */
 	private Endpoint $Endpoint;
 
 	/** @var array<callable(self): void>  Occurs before the application loads presenter */
@@ -76,23 +79,57 @@ final class Application
 		$this->HttpRequest = $HttpRequest;
 		$this->HttpResponse = $HttpResponse;
 		$this->Container = $Container;
-		Debugger::barDump($Session);
+
+		$Session->start();
+		$this->checkSecurityHeaders();
 	}
 
 	/**
-	 * Dispatch a HTTP request to a front controller.
+	 * Startup security checks before the application is created
 	 */
-	public function run(): void
+	public function checkSecurityHeaders(): void
 	{
-		try {
-			Arrays::invoke($this->onStartup, $this);
-			$this->processRequest($this->createInitialRequest());
-			Arrays::invoke($this->onShutdown, $this);
-		} catch (\Throwable $e) {
-			Arrays::invoke($this->onError, $this, $e);
-			Arrays::invoke($this->onShutdown, $this, $e);
-			throw $e;
+		$headers = $this->HttpRequest->getHeaders();
+
+		if ((!($headers[SessionManager::HEADER_ACCESS_KEY] ?? false) && !($headers[SessionManager::HEADER_SERVICE_NAME] ?? false)) ||
+			empty($headers[SessionManager::HEADER_ACCESS_KEY]) || empty($headers[SessionManager::HEADER_SERVICE_NAME])) {
+			// either one must be specified or shut down the application to don't waste power on this request
+
+			bdump($headers);
+			bdump($headers[SessionManager::HEADER_ACCESS_KEY] ?? false, SessionManager::HEADER_ACCESS_KEY);
+			bdump($headers[SessionManager::HEADER_SERVICE_NAME] ?? false, SessionManager::HEADER_SERVICE_NAME);
+			
+			http_response_code(403);
+			exit;
 		}
+	}
+
+	/**
+	 * Runs security after Request is created and before any endpoint is used or any other action
+	 */
+	private function checkSessionService(Request $Request): void
+	{
+		/** @var string */
+		$accessKey = $Request->getHeader(SessionManager::HEADER_ACCESS_KEY);
+		/** @var string */
+		$serviceName = $Request->getHeader(SessionManager::HEADER_SERVICE_NAME);
+		/** @var string */
+		$serviceKey = $Request->getHeader(SessionManager::HEADER_SERVICE_KEY);
+
+		$this->SessionManager = $this->getSessionManager();
+
+		bdump($accessKey, SessionManager::HEADER_ACCESS_KEY);
+		bdump($serviceName, SessionManager::HEADER_SERVICE_NAME);
+		bdump($serviceKey, SessionManager::HEADER_SERVICE_KEY);
+		bdump(SessionManager::ENDPOINT_NAME);
+		// if access token is specified, just find it and unlock it
+		if (strpos($_SERVER['REQUEST_URI'], SessionManager::ENDPOINT_NAME)){
+			// we're running the security commands
+			//$this->SessionManager->initConnection();
+			bdump(42);
+		}
+
+		exit;
 	}
 
 	/**
@@ -120,6 +157,9 @@ final class Application
 	 */
 	public function processRequest(Request $Request): void
 	{
+		$Request->getHeader(SessionManager::HEADER_ACCESS_KEY);
+		
+		$this->checkSessionService($Request);
 		$this->setAdditionalHeaders();
 
 		process:
@@ -134,6 +174,7 @@ final class Application
 			// get Endpoint class full path
 			$endpointName = $Request->getEndpoint();
 			$endpointPath = $Request->getEndpointPath();
+
 			if (!class_exists($endpointPath)){
 				throw new BadRequestException('No possible response for this request');
 			}
@@ -146,7 +187,6 @@ final class Application
 			if(!method_exists($Endpoint, 'run')){
 				throw new BadRequestException('Unknown action');
 			}
-
 			
 			// inject dependencies
 			$this->Container->callInjects($Endpoint);
@@ -154,7 +194,7 @@ final class Application
 			$Endpoint->setParams($this->params);
 	
 			// run wanted class method and return it's content
-			$Response = call_user_func([$Endpoint, 'run'], $this->params, $Request);
+			$Response = call_user_func([$Endpoint, 'run'], $this->params, $Request, $this->HttpResponse);
 		} catch (Throwable $e) {
 			throw count($this->requests) > 1
 				? $e
@@ -168,6 +208,21 @@ final class Application
 
 		Arrays::invoke($this->onResponse, $this, $Response);
 		$Response->send($this->HttpRequest, $this->HttpResponse);
+	}
+
+	/**
+	 * Get session manager
+	 */
+	public function getSessionManager(): SessionManager
+	{
+		if ($this->Container->hasService('SessionManager')){
+			return $this->Container->getService('SessionManager');
+		}
+
+		$SessionManager = $this->Container->createInstance(SessionManager::class);
+		$this->Container->addService('SessionManager', $SessionManager);
+
+		return $SessionManager;
 	}
 
 	/**
@@ -188,15 +243,15 @@ final class Application
             $fetchSource = file_get_contents('php://input');
             $postData = @json_decode($fetchSource, true);
         }
-
+		
 		// finally create and return request
 		return new Request(
 			$_SERVER['REQUEST_URI'], // URI query string
 			$this->HttpRequest->getMethod(), // HTTP2 method
-			((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443), // using HTTPS
-			false, // using private key
 			$postData ?? [],
-			$this->HttpRequest->getFiles() ?? []
+			$this->HttpRequest->getFiles() ?? [],
+			$headers,
+			$this->getSessionManager()
 		);
 	}
 
@@ -204,8 +259,24 @@ final class Application
 	 * Returns all processed requests.
 	 * @return Request[]
 	 */
-	final public function getRequests(): array
+	public function getRequests(): array
 	{
 		return $this->requests;
+	}
+
+	/**
+	 * Dispatch a HTTP request to a front controller.
+	 */
+	public function run(): void
+	{
+		try {
+			Arrays::invoke($this->onStartup, $this);
+			$this->processRequest($this->createInitialRequest());
+			Arrays::invoke($this->onShutdown, $this);
+		} catch (\Throwable $e) {
+			Arrays::invoke($this->onError, $this, $e);
+			Arrays::invoke($this->onShutdown, $this, $e);
+			throw $e;
+		}
 	}
 }

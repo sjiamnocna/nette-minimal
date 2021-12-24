@@ -2,11 +2,9 @@
 
 namespace APIcation;
 
-use Exception;
-use InvalidArgumentException;
+use APIcation\Security\SessionManager;
 use Nette;
 use Nette\InvalidStateException;
-use Tracy\Debugger;
 
 /**
  * Presenter request.
@@ -17,9 +15,11 @@ use Tracy\Debugger;
  * @property array $files
  * @property string|null $method
  */
-final class Request
+class Request
 {
 	use Nette\SmartObject;
+
+	private SessionManager $Security;
 
 	/** @var string URI query string */
 	private string $queryString;
@@ -30,9 +30,6 @@ final class Request
 	/** @var string HTTP method */
 	private string $method;
 
-	/** @var bool Using HTPS */
-	private bool $https;
-
 	/** @var bool Using Private key? */
 	private bool $private;
 
@@ -42,27 +39,29 @@ final class Request
 	/** @var array */
 	private array $files;
 
+	/** @var array */
+	private array $headers;
+
 	/**
 	 * @param  string  $name  presenter name (module:module:presenter)
 	 */
 	public function __construct(
 		string $queryString,
 		string $method,
-		bool $https,
-		bool $private,
 		array $post,
-		array $files
+		array $files,
+		array $headers
 	) {
 		$this->queryString = $queryString;
 		$this->method = $method;
-		$this->processPath($queryString);
-		$this->https = $https;
-		$this->private = $private;
 		$this->post = $post;
 		$this->files = $files;
+		$this->headers = $headers;
+
+		$this->processPath($queryString);
 	}
 
-	private function processPath(string $queryString): void
+	public static function breakPath(string $queryString): array
 	{
 		/**
 		 * Path to wanted action
@@ -76,17 +75,21 @@ final class Request
 		}
 
 		// skip API
-		for ($i = 0; $item = $res[$i] ?? false; $i++){
-			if ($item === 'api'){
-				// because we use NodeJS proxy pass to API when developing on localhost
-				// we prepended 'api' this removes it
-				continue;
-			}
-			$this->path[] = $item;
+		if ($res[0] === 'api'){
+			array_shift($res);
 		}
 
-		$this->path[0] = $this->path[0] ? 'E' . ucfirst($this->path[0]) : null;
-        $this->path[1] = $this->path[1] ?? 'default';
+		return $res;
+	}
+
+	private function processPath(string $queryString): void
+	{
+		$res = self::breakPath($queryString);
+
+		$this->path = [
+			$res[0] ? 'E' . ucfirst($res[0]) : null,
+			$res[1] ?? 'default'
+		];
 	}
 
 	/**
@@ -102,6 +105,7 @@ final class Request
 	 */
 	public function getEndpointPath(): string
 	{
+		// add full namespace path
 		return 'APIcation\Endpoints\\' . $this->path[0];
 	}
 
@@ -141,14 +145,11 @@ final class Request
 		return $this->method;
 	}
 
-	/**
-	 * If private key is used
-	 */
-	public function getPrivate(): bool
+	public function getHeader(?string $headerName = null)
 	{
-		return $this->private;
+		return $headerName ?
+			($this->headers[$headerName] ?? false) : $this->headers;
 	}
-
 
 	/**
 	 * Sets the flag.
@@ -160,7 +161,6 @@ final class Request
 		return $this;
 	}
 
-
 	/**
 	 * Checks the flag.
 	 */
@@ -168,7 +168,6 @@ final class Request
 	{
 		return !empty($this->flags[$flag]);
 	}
-
 
 	public function toArray(): array
 	{
