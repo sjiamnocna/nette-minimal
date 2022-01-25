@@ -3,6 +3,7 @@
 namespace APIcation;
 
 use APIcation\Security\SessionManager;
+use Exception;
 use Nette;
 use Nette\InvalidStateException;
 
@@ -63,16 +64,15 @@ class Request
 
 	public static function breakPath(string $queryString): array
 	{
+		if (empty($queryString)){
+			throw new Exception('Querystring mustnot be empty');
+		}
 		/**
 		 * Path to wanted action
 		 * 1. Endpoint
 		 * 2. Action
 		 */
 		$res = explode('/', trim($queryString, '/'));
-
-		if (count($res) < 1){
-			throw new InvalidStateException();
-		}
 
 		// skip API
 		if ($res[0] === 'api'){
@@ -145,6 +145,11 @@ class Request
 		return $this->method;
 	}
 
+	/**
+	 * Get all headers or one of them
+	 * 
+	 * @param string Header name if you want specific one
+	 */
 	public function getHeader(?string $headerName = null)
 	{
 		return $headerName ?

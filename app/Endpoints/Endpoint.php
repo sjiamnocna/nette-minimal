@@ -13,6 +13,8 @@ use Tracy\Debugger;
  */
 abstract class AbstractEndpoint
 {
+    use SmartObject;
+    
     /** @var array Neon configuration parameters */
     protected array $params;
     /**

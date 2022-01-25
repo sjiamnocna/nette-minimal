@@ -12,7 +12,14 @@ class EHello extends AbstractEndpoint
     public function default()
     {
         return new JsonResponse([
-            'hello' => $this->params['hello']
+            'hello' => 'Hello World!'
+        ]);
+    }
+
+    public function __default()
+    {
+        return new JsonResponse([
+            'hello' => 'Hello from the other side!'
         ]);
     }
 }

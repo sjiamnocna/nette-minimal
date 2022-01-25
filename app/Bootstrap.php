@@ -2,11 +2,16 @@
 
 namespace APIcation;
 
+use Tracy\Debugger;
+use APIcation\CSecurity;
+use Nette\DI\Container;
+use Nette\Http\Session;
+
 class Bootstrap
 {
-	public static function boot(): Configurator
+	public static function boot(): Container
 	{
-		$configurator = new Configurator;
+		$configurator = new CConfigurator;
 
 		$configurator->setDebugMode('localhost');
 		$configurator->enableTracy(__DIR__ . '/../log');
@@ -21,6 +26,8 @@ class Bootstrap
 		$configurator->addConfig(__DIR__ . '/config/local.neon');
 		$configurator->addConfig(__DIR__ . '/config/common.neon');
 
-		return $configurator;
+		$container = $configurator->createContainer();
+
+		return $container;
 	}
 }
