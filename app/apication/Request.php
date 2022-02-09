@@ -5,7 +5,6 @@ namespace APIcation;
 use APIcation\Security\SessionManager;
 use Exception;
 use Nette;
-use Nette\InvalidStateException;
 
 /**
  * Presenter request.
@@ -31,9 +30,6 @@ class Request
 	/** @var string HTTP method */
 	private string $method;
 
-	/** @var bool Using Private key? */
-	private bool $private;
-
 	/** @var array */
 	private array $post;
 
@@ -43,6 +39,9 @@ class Request
 	/** @var array */
 	private array $headers;
 
+	/** @var array Request was authorized via API key */
+	private bool $authorized;
+
 	/**
 	 * @param  string  $name  presenter name (module:module:presenter)
 	 */
@@ -51,13 +50,15 @@ class Request
 		string $method,
 		array $post,
 		array $files,
-		array $headers
+		array $headers,
+		bool $authorized
 	) {
 		$this->queryString = $queryString;
 		$this->method = $method;
 		$this->post = $post;
 		$this->files = $files;
 		$this->headers = $headers;
+		$this->authorized = $authorized;
 
 		$this->processPath($queryString);
 	}
@@ -88,7 +89,7 @@ class Request
 
 		$this->path = [
 			$res[0] ? 'E' . ucfirst($res[0]) : null,
-			$res[1] ?? 'default'
+			trim($res[1] ?? 'default', "_")
 		];
 	}
 
@@ -156,22 +157,9 @@ class Request
 			($this->headers[$headerName] ?? false) : $this->headers;
 	}
 
-	/**
-	 * Sets the flag.
-	 * @return static
-	 */
-	public function setFlag(string $flag, bool $value = true)
+	public function isAuthorized()
 	{
-		$this->flags[$flag] = $value;
-		return $this;
-	}
-
-	/**
-	 * Checks the flag.
-	 */
-	public function hasFlag(string $flag): bool
-	{
-		return !empty($this->flags[$flag]);
+		return $this->authorized;
 	}
 
 	public function toArray(): array

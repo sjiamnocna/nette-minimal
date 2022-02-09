@@ -145,9 +145,17 @@ class CSecurity
             return $this->createAccessKey($serviceName);
         }
 
-        bdump([$accessKey, $serviceKey, $serviceName]);
-
         return null;
+    }
+
+    /**
+     * Set object default state
+     */
+    public function closeConnection()
+    {
+        $this->setSessionProp('serviceAuthorized', false);
+        $this->isServiceAuthorized = false;
+        $this->isRequestAuthenticated = false;
     }
 
     /**
@@ -157,7 +165,7 @@ class CSecurity
      * 
      * @return null|string Requested header data or null
      */
-    public function getHeader(string $headerName): ?string
+    public static function getHeader(string $headerName): ?string
     {
         // edit header name to find in $_SERVER
         $headerName = 'HTTP_' . \str_replace('-', '_', \strtoupper($headerName));
@@ -190,7 +198,19 @@ class CSecurity
     }
 
     /**
-     * Get information if current request is both accessKey and serviceKey
+     * If request has been authenticated by access key header
+     * 
+     * @return bool
+     */
+    public function isRequestAuthenticated(): bool
+    {
+        return $this->requestAuthenticated;
+    }
+
+    /**
+     * Get information if current session is authorized using both serviceName and serviceKey and request is authenticated
+     * 
+     * Allows using private endpoint actions (those with __ prefix)
      * 
      * @return bool Whether current request has verified to API via service key
      */
@@ -240,33 +260,40 @@ class CSecurity
      */
     public function run(): void
     {
-        // start checking presence of required security headers, shutdown otherwise
-        $serviceName = $this->getHeader(self::HEADER_SERVICE_NAME);
+        // check presence of required security headers
         /** @var string */
-        $accessKey = $this->getHeader(self::HEADER_ACCESS_KEY);
+        $serviceName = self::getHeader(self::HEADER_SERVICE_NAME);
         /** @var string */
-        $serviceKey = $this->getHeader(self::HEADER_SERVICE_KEY);
-        // not allowed combinations
+        $accessKey = self::getHeader(self::HEADER_ACCESS_KEY);
+        // not allowed combination
         if ((!$accessKey || empty($accessKey)) && (!$serviceName || empty($serviceName))) {
             throw new \Exception('Invalid combination of headers');
         }
 
+        /** @var string */
+        $serviceKey = self::getHeader(self::HEADER_SERVICE_KEY);
+        /** @var string  Current request's querystring */
+        $query = $_SERVER['REQUEST_URI'];
         /**
          * @var int Position of endpoint name string in request query
          */
-        $position = strpos($query = $_SERVER['REQUEST_URI'], self::ENDPOINT_NAME);
+        $position = strpos($query, self::ENDPOINT_NAME);
 
         // run security section actions only
         if ($position) {
             // action is string starting after the API endpoint name
             $action = substr($query, $position + strlen(self::ENDPOINT_NAME) + 1);
 
+            bdump($accessKey);
+            bdump($serviceName);
+            bdump($serviceKey);
+            bdump($this->isServiceAuthorized());
+            bdump($this->isRequestAuthenticated());
+
             switch ($action) {
                 case 'init':
                     if (!$accessKey) {
-                        bdump([$accessKey, $serviceName], '!accesskey');
                         if (!$serviceName) {
-                            bdump('!servicename');
                             // need service name to start service
                             throw new Exception('Can\'t identify service', 403);
                         }
@@ -289,6 +316,10 @@ class CSecurity
                     } else {
                         throw new Exception('Service authorization failed, key ' . sprintf('\'%s\' (%s)', $serviceKey, gettype($serviceKey)));
                     }
+                    break;
+                case 'connectionClose':
+                    $this->closeConnection();
+                    self::dietCoke(200);
                     break;
                 default:
                     throw new Exception("Invalid action", 500);

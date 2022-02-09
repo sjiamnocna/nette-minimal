@@ -117,7 +117,7 @@ class Application
 		$postData = $this->HttpRequest->getPost();
 		$headers = $this->HttpRequest->getHeaders();
 
-        // correctly get data from Fetch XHR method
+        // correctly get data from Fetch
         if (($headers['x-requested-with'] ?? false) === 'XMLHttpRequest' && empty($this->HttpRequest->getPost()) && $headers['content-type'] === 'application/json'){
             /**
              * @var string  String data from STDIN (Fetch error)
@@ -132,7 +132,8 @@ class Application
 			$this->HttpRequest->getMethod(), // HTTP2 method
 			$postData ?? [],
 			$this->HttpRequest->getFiles() ?? [],
-			$headers
+			$headers,
+			$this->Security->isServiceAuthorized()
 		);
 	}
 

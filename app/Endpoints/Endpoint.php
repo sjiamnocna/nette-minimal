@@ -45,17 +45,33 @@ abstract class AbstractEndpoint
         $this->Request = $Request;
 
         if (!method_exists($this, $this->Request->getAction())){
-            throw new Exception('Action doesn\'t exist');
         }
 
         // allow specific action for REST methods
         $method = strtolower($this->Request->getMethod());
-        $prefixedAction = $method . \ucfirst($this->Request->getAction());
+        $action = $this->Request->getAction();
+        $prefixedAction = $method . \ucfirst($action);
 
-        if (method_exists($this, $prefixedAction)){
-            return call_user_func([$this, $prefixedAction]);
+        $priorityQueue = [];
+
+        bdump($Request);
+        if ($Request->isAuthorized()){
+            // prefix __ means private function accessible only with API key
+            $priorityQueue[] = '__' . $prefixedAction;
+            $priorityQueue[] = '__' . $action;
         }
 
-        return call_user_func([$this, $this->Request->getAction()]);
+        $priorityQueue[] = $prefixedAction;
+        $priorityQueue[] = $action;
+
+        foreach($priorityQueue as $action){
+            // one by one call methods
+            if (\method_exists($this, $action)){
+                bdump($action);
+                return call_user_func([$this, $action]);
+            }
+        }
+        
+        throw new Exception('Action doesn\'t exist');
     }
 }
