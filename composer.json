@@ -3,6 +3,7 @@
         "nette/di": "^3.0",
         "nette/neon": "^3.2",
         "nette/utils": "^3.2",
-        "nette/nette": "^3.1"
+        "nette/nette": "^3.1",
+        "sjiamnocna/nette-apication": "dev-main"
     }
 }

@@ -2,16 +2,14 @@
 
 namespace APIcation;
 
-use Tracy\Debugger;
-use APIcation\CSecurity;
 use Nette\DI\Container;
-use Nette\Http\Session;
+use Nette\Configurator;
 
 class Bootstrap
 {
 	public static function boot(): Container
 	{
-		$configurator = new CConfigurator;
+		$configurator = new Configurator();
 
 		$configurator->setDebugMode('localhost');
 		$configurator->enableTracy(__DIR__ . '/../log');
